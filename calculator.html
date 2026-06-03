@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Калькулятор</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: system-ui, -apple-system, sans-serif;
+      background: linear-gradient(145deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    }
+
+    .calculator {
+      width: min(320px, 92vw);
+      background: #1e1e2f;
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+    }
+
+    .display {
+      background: #12121c;
+      border-radius: 10px;
+      padding: 16px 14px;
+      margin-bottom: 16px;
+      text-align: right;
+      min-height: 72px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+    }
+
+    .display-expression {
+      color: #6b7280;
+      font-size: 0.85rem;
+      min-height: 1.2em;
+      word-break: break-all;
+    }
+
+    .display-value {
+      color: #f3f4f6;
+      font-size: 2rem;
+      font-weight: 300;
+      word-break: break-all;
+      line-height: 1.2;
+    }
+
+    .keys {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+
+    button {
+      border: none;
+      border-radius: 10px;
+      padding: 18px 0;
+      font-size: 1.15rem;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+      font-family: inherit;
+    }
+
+    button:active {
+      transform: scale(0.96);
+    }
+
+    .btn-digit {
+      background: #2d2d44;
+      color: #e5e7eb;
+    }
+
+    .btn-digit:hover {
+      background: #3d3d5c;
+    }
+
+    .btn-op {
+      background: #e94560;
+      color: #fff;
+    }
+
+    .btn-op:hover {
+      background: #ff6b6b;
+    }
+
+    .btn-fn {
+      background: #374151;
+      color: #d1d5db;
+    }
+
+    .btn-fn:hover {
+      background: #4b5563;
+    }
+
+    .btn-clear {
+      background: #dc2626;
+      color: #fff;
+    }
+
+    .btn-clear:hover {
+      background: #ef4444;
+    }
+
+    .btn-equals {
+      background: #0ea5e9;
+      color: #fff;
+    }
+
+    .btn-equals:hover {
+      background: #38bdf8;
+    }
+
+    .span-2 {
+      grid-column: span 2;
+    }
+  </style>
+</head>
+<body>
+  <div class="calculator">
+    <div class="display">
+      <div class="display-expression" id="expression"></div>
+      <div class="display-value" id="value">0</div>
+    </div>
+    <div class="keys">
+      <button type="button" class="btn-fn btn-clear" data-action="clear">C</button>
+      <button type="button" class="btn-fn" data-action="backspace">⌫</button>
+      <button type="button" class="btn-fn" data-action="percent">%</button>
+      <button type="button" class="btn-op" data-action="operator" data-op="/">÷</button>
+
+      <button type="button" class="btn-digit" data-action="digit" data-digit="7">7</button>
+      <button type="button" class="btn-digit" data-action="digit" data-digit="8">8</button>
+      <button type="button" class="btn-digit" data-action="digit" data-digit="9">9</button>
+      <button type="button" class="btn-op" data-action="operator" data-op="*">×</button>
+
+      <button type="button" class="btn-digit" data-action="digit" data-digit="4">4</button>
+      <button type="button" class="btn-digit" data-action="digit" data-digit="5">5</button>
+      <button type="button" class="btn-digit" data-action="digit" data-digit="6">6</button>
+      <button type="button" class="btn-op" data-action="operator" data-op="-">−</button>
+
+      <button type="button" class="btn-digit" data-action="digit" data-digit="1">1</button>
+      <button type="button" class="btn-digit" data-action="digit" data-digit="2">2</button>
+      <button type="button" class="btn-digit" data-action="digit" data-digit="3">3</button>
+      <button type="button" class="btn-op" data-action="operator" data-op="+">+</button>
+
+      <button type="button" class="btn-digit span-2" data-action="digit" data-digit="0">0</button>
+      <button type="button" class="btn-digit" data-action="decimal">,</button>
+      <button type="button" class="btn-equals" data-action="equals">=</button>
+    </div>
+  </div>
+
+  <script>
+    const valueEl = document.getElementById('value');
+    const expressionEl = document.getElementById('expression');
+
+    const state = {
+      current: '0',
+      previous: null,
+      operator: null,
+      waitingForOperand: false,
+      expression: ''
+    };
+
+    const OP_SYMBOLS = { '+': '+', '-': '−', '*': '×', '/': '÷' };
+    const DECIMAL = ',';
+
+    function formatNumber(num) {
+      if (!Number.isFinite(num)) return 'Ошибка';
+      return Number(num).toLocaleString('ru-RU', {
+        useGrouping: false,
+        maximumFractionDigits: 10
+      });
+    }
+
+    function toDisplay(str) {
+      return String(str).replace(/\./g, DECIMAL);
+    }
+
+    function parseCurrent() {
+      return parseFloat(state.current.replace(DECIMAL, '.')) || 0;
+    }
+
+    function updateDisplay() {
+      valueEl.textContent = toDisplay(state.current);
+      expressionEl.textContent = toDisplay(state.expression);
+    }
+
+    function clear() {
+      state.current = '0';
+      state.previous = null;
+      state.operator = null;
+      state.waitingForOperand = false;
+      state.expression = '';
+      updateDisplay();
+    }
+
+    function inputDigit(digit) {
+      if (state.waitingForOperand) {
+        state.current = digit;
+        state.waitingForOperand = false;
+      } else {
+        state.current = state.current === '0' ? digit : state.current + digit;
+      }
+      updateDisplay();
+    }
+
+    function inputDecimal() {
+      if (state.waitingForOperand) {
+        state.current = '0' + DECIMAL;
+        state.waitingForOperand = false;
+        updateDisplay();
+        return;
+      }
+      if (!state.current.includes(DECIMAL)) {
+        state.current += DECIMAL;
+        updateDisplay();
+      }
+    }
+
+    function compute(a, b, op) {
+      switch (op) {
+        case '+': return a + b;
+        case '-': return a - b;
+        case '*': return a * b;
+        case '/': return b === 0 ? NaN : a / b;
+        default: return b;
+      }
+    }
+
+    function applyOperator(nextOp) {
+      const currentVal = parseCurrent();
+
+      if (state.operator !== null && !state.waitingForOperand) {
+        const result = compute(state.previous, currentVal, state.operator);
+        if (Number.isNaN(result)) {
+          state.current = 'Ошибка';
+          state.previous = null;
+          state.operator = null;
+          state.expression = '';
+          state.waitingForOperand = true;
+          updateDisplay();
+          return;
+        }
+        state.previous = result;
+        state.current = formatNumber(result);
+        state.expression = formatNumber(result) + ' ' + OP_SYMBOLS[nextOp];
+      } else {
+        state.previous = currentVal;
+        state.expression = formatNumber(currentVal) + ' ' + OP_SYMBOLS[nextOp];
+      }
+
+      state.operator = nextOp;
+      state.waitingForOperand = true;
+      updateDisplay();
+    }
+
+    function equals() {
+      if (state.operator === null || state.waitingForOperand) return;
+
+      const currentVal = parseCurrent();
+      const result = compute(state.previous, currentVal, state.operator);
+
+      if (Number.isNaN(result)) {
+        state.current = 'Ошибка';
+        state.expression = '';
+      } else {
+        const prevSym = OP_SYMBOLS[state.operator];
+        state.expression =
+          formatNumber(state.previous) + ' ' + prevSym + ' ' + formatNumber(currentVal) + ' =';
+        state.current = formatNumber(result);
+        state.previous = null;
+        state.operator = null;
+      }
+
+      state.waitingForOperand = true;
+      updateDisplay();
+    }
+
+    function backspace() {
+      if (state.current === 'Ошибка' || state.waitingForOperand) {
+        clear();
+        return;
+      }
+      if (state.current.length <= 1) {
+        state.current = '0';
+      } else {
+        state.current = state.current.slice(0, -1);
+      }
+      updateDisplay();
+    }
+
+    function percent() {
+      const val = parseCurrent() / 100;
+      state.current = formatNumber(val);
+      updateDisplay();
+    }
+
+    document.querySelector('.keys').addEventListener('click', (e) => {
+      const btn = e.target.closest('button');
+      if (!btn) return;
+
+      const action = btn.dataset.action;
+
+      if (action === 'digit') {
+        inputDigit(btn.dataset.digit);
+      } else if (action === 'decimal') {
+        inputDecimal();
+      } else if (action === 'operator') {
+        if (state.current !== 'Ошибка') {
+          applyOperator(btn.dataset.op);
+        }
+      } else if (action === 'equals') {
+        equals();
+      } else if (action === 'clear') {
+        clear();
+      } else if (action === 'backspace') {
+        backspace();
+      } else if (action === 'percent') {
+        if (state.current !== 'Ошибка') percent();
+      }
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key >= '0' && e.key <= '9') {
+        inputDigit(e.key);
+      } else if (e.key === ',' || e.key === '.') {
+        inputDecimal();
+      } else if (e.key === '+') {
+        applyOperator('+');
+      } else if (e.key === '-') {
+        applyOperator('-');
+      } else if (e.key === '*') {
+        applyOperator('*');
+      } else if (e.key === '/') {
+        e.preventDefault();
+        applyOperator('/');
+      } else if (e.key === 'Enter' || e.key === '=') {
+        equals();
+      } else if (e.key === 'Escape') {
+        clear();
+      } else if (e.key === 'Backspace') {
+        backspace();
+      } else if (e.key === '%') {
+        percent();
+      }
+    });
+  </script>
+</body>
+</html>
