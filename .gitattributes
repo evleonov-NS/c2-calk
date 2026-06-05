@@ -1,0 +1,5 @@
+* text=auto
+
+*.html text charset=utf-8 working-tree-encoding=UTF-8
+*.md   text charset=utf-8 working-tree-encoding=UTF-8
+*.json text charset=utf-8
