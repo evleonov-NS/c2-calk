@@ -34,7 +34,15 @@
       --theme-btn-bg: #f5f2ea;
       --theme-btn-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
       --toggle-track: #374151;
-      --toggle-thumb: #f3f4f6;
+      --toggle-thumb: #f3f4f6; 
+      --journal-bg: #252536;
+      --journal-border: rgba(255, 255, 255, 0.08);
+      --journal-title: #e5e7eb;
+      --journal-muted: #6b7280;
+      --journal-entry-bg: #1a1a28;
+      --journal-expr: #9ca3af;
+      --journal-result: #38bdf8;
+      --journal-empty: #6b7280;
     }
 
     [data-theme="light"] {
@@ -54,6 +62,14 @@
       --theme-btn-shadow: 0 2px 8px rgba(15, 23, 42, 0.15);
       --toggle-track: #cbd5e1;
       --toggle-thumb: #ffffff;
+      --journal-bg: #f8fafc;
+      --journal-border: rgba(15, 23, 42, 0.1);
+      --journal-title: #0f172a;
+      --journal-muted: #64748b;
+      --journal-entry-bg: #ffffff;
+      --journal-expr: #64748b;
+      --journal-result: #0284c7;
+      --journal-empty: #94a3b8;
     }
 
     body {
@@ -64,6 +80,17 @@
       font-family: system-ui, -apple-system, sans-serif;
       background: var(--bg-gradient);
       transition: background 0.3s ease;
+      padding: 16px;
+    }
+
+    .app {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      justify-content: center;
+      gap: 20px;
+      max-width: 640px;
+      width: 100%;
     }
 
     .calculator {
@@ -273,9 +300,136 @@
     .span-2 {
       grid-column: span 2;
     }
+
+    .journal {
+      width: min(320px, 92vw);
+      background: var(--journal-bg);
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: var(--calc-shadow);
+      border: 1px solid var(--journal-border);
+      display: flex;
+      flex-direction: column;
+      max-height: min(520px, 85vh);
+      transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .journal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 12px;
+      flex-shrink: 0;
+    }
+
+    .journal-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--journal-title);
+      transition: color 0.3s ease;
+    }
+
+    .journal-clear {
+      padding: 6px 10px;
+      font-size: 0.75rem;
+      border-radius: 8px;
+      background: var(--fn-bg);
+      color: var(--fn-color);
+      transition: background 0.2s ease, color 0.3s ease;
+    }
+
+    .journal-clear:hover {
+      background: var(--fn-hover);
+    }
+
+    .journal-list {
+      list-style: none;
+      overflow-y: auto;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding-right: 4px;
+      scrollbar-width: thin;
+      scrollbar-color: var(--fn-bg) transparent;
+    }
+
+    .journal-list::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .journal-list::-webkit-scrollbar-thumb {
+      background: var(--fn-bg);
+      border-radius: 3px;
+    }
+
+    .journal-entry {
+      background: var(--journal-entry-bg);
+      border-radius: 10px;
+      padding: 10px 12px;
+      cursor: pointer;
+      transition: background 0.15s ease, transform 0.1s ease;
+    }
+
+    .journal-entry:hover {
+      filter: brightness(1.08);
+    }
+
+    .journal-entry:active {
+      transform: scale(0.98);
+    }
+
+    .journal-entry-expr {
+      font-size: 0.8rem;
+      color: var(--journal-expr);
+      word-break: break-all;
+      line-height: 1.35;
+      transition: color 0.3s ease;
+    }
+
+    .journal-entry-result {
+      font-size: 1.1rem;
+      font-weight: 500;
+      color: var(--journal-result);
+      margin-top: 4px;
+      word-break: break-all;
+      transition: color 0.3s ease;
+    }
+
+    .journal-entry-time {
+      font-size: 0.7rem;
+      color: var(--journal-muted);
+      margin-top: 6px;
+      transition: color 0.3s ease;
+    }
+
+    .journal-empty {
+      text-align: center;
+      color: var(--journal-empty);
+      font-size: 0.85rem;
+      padding: 24px 12px;
+      line-height: 1.5;
+      transition: color 0.3s ease;
+    }
+
+    @media (min-width: 680px) {
+      .app {
+        flex-wrap: nowrap;
+        max-width: none;
+        align-items: stretch;
+      }
+
+      .journal {
+        width: 280px;
+        max-height: none;
+        align-self: stretch;
+      }
+    }
   </style>
 </head>
 <body>
+  <div class="app">
   <div class="calculator">
     <div class="theme-bar">
       <button type="button" class="theme-btn" id="themeBtn" aria-label="Переключить светлую и тёмную тему">
@@ -318,6 +472,15 @@
     </div>
   </div>
 
+  <aside class="journal" aria-label="Журнал операций">
+    <div class="journal-header">
+      <h2 class="journal-title">Журнал операций</h2>
+      <button type="button" class="journal-clear" id="journalClear" aria-label="Очистить журнал">Очистить</button>
+    </div>
+    <ul class="journal-list" id="journalList" role="log" aria-live="polite"></ul>
+  </aside>
+  </div>
+
   <script>
     const valueEl = document.getElementById('value');
     const expressionEl = document.getElementById('expression');
@@ -326,6 +489,12 @@
     const themeIcon = document.getElementById('themeIcon');
     const themeLabel = document.getElementById('themeLabel');
     const THEME_KEY = 'calc-theme';
+    const JOURNAL_KEY = 'calc-journal';
+    const JOURNAL_MAX = 50;
+    const journalListEl = document.getElementById('journalList');
+    const journalClearBtn = document.getElementById('journalClear');
+
+    let journal = [];
 
     function getTheme() {
       return document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
@@ -349,6 +518,108 @@
 
     themeBtn.addEventListener('click', toggleTheme);
     themeToggle.addEventListener('click', toggleTheme);
+
+    function formatJournalTime(ts) {
+      return new Date(ts).toLocaleString('ru-RU', {
+        day: '2-digit',
+        month: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+
+    function saveJournal() {
+      try {
+        localStorage.setItem(JOURNAL_KEY, JSON.stringify(journal));
+      } catch (_) {}
+    }
+
+    function loadJournal() {
+      try {
+        const raw = localStorage.getItem(JOURNAL_KEY);
+        if (!raw) return;
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          journal = parsed.filter(
+            (e) => e && typeof e.expression === 'string' && typeof e.result === 'string'
+          ).slice(0, JOURNAL_MAX);
+        }
+      } catch (_) {
+        journal = [];
+      }
+    }
+
+    function addJournalEntry(expression, result) {
+      journal.unshift({
+        id: Date.now(),
+        expression,
+        result,
+        time: Date.now()
+      });
+      if (journal.length > JOURNAL_MAX) {
+        journal.length = JOURNAL_MAX;
+      }
+      saveJournal();
+      renderJournal();
+    }
+
+    function renderJournal() {
+      journalListEl.innerHTML = '';
+      if (journal.length === 0) {
+        const empty = document.createElement('li');
+        empty.className = 'journal-empty';
+        empty.textContent = 'Здесь появятся завершённые вычисления после нажатия «=»';
+        journalListEl.appendChild(empty);
+        return;
+      }
+      journal.forEach((entry) => {
+        const li = document.createElement('li');
+        li.className = 'journal-entry';
+        li.setAttribute('role', 'listitem');
+        li.title = 'Подставить результат в калькулятор';
+        li.dataset.result = entry.result;
+
+        const expr = document.createElement('div');
+        expr.className = 'journal-entry-expr';
+        expr.textContent = toDisplay(entry.expression);
+
+        const res = document.createElement('div');
+        res.className = 'journal-entry-result';
+        res.textContent = '= ' + toDisplay(entry.result);
+
+        const time = document.createElement('div');
+        time.className = 'journal-entry-time';
+        time.textContent = formatJournalTime(entry.time);
+
+        li.appendChild(expr);
+        li.appendChild(res);
+        li.appendChild(time);
+        journalListEl.appendChild(li);
+      });
+    }
+
+    function clearJournal() {
+      journal = [];
+      saveJournal();
+      renderJournal();
+    }
+
+    function useJournalResult(resultStr) {
+      if (resultStr === 'Ошибка') return;
+      state.current = resultStr;
+      state.previous = null;
+      state.operator = null;
+      state.waitingForOperand = true;
+      state.expression = '';
+      updateDisplay();
+    }
+
+    journalClearBtn.addEventListener('click', clearJournal);
+    journalListEl.addEventListener('click', (e) => {
+      const entry = e.target.closest('.journal-entry');
+      if (!entry || !entry.dataset.result) return;
+      useJournalResult(entry.dataset.result);
+    });
 
     const state = {
       current: '0',
@@ -381,6 +652,9 @@
       valueEl.textContent = toDisplay(state.current);
       expressionEl.textContent = toDisplay(state.expression);
     }
+
+    loadJournal();
+    renderJournal();
 
     function clear() {
       state.current = '0';
@@ -462,9 +736,11 @@
         state.expression = '';
       } else {
         const prevSym = OP_SYMBOLS[state.operator];
-        state.expression =
+        const fullExpr =
           formatNumber(state.previous) + ' ' + prevSym + ' ' + formatNumber(currentVal) + ' =';
+        state.expression = fullExpr;
         state.current = formatNumber(result);
+        addJournalEntry(fullExpr, state.current);
         state.previous = null;
         state.operator = null;
       }
