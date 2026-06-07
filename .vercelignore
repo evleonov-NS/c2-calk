@@ -1,0 +1,12 @@
+node_modules
+test-results
+playwright-report
+tests
+e2e
+src
+docs
+vitest.config.mjs
+playwright.config.js
+package-lock.json
+pnpm-lock.yaml
+.git
